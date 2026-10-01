@@ -3,498 +3,239 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
-  <meta name="theme-color" content="#03070d" />
-  <title>空灵爱心</title>
+  <meta name="theme-color" content="#000000" />
+  <title>形状变换艺术</title>
   <style>
-    :root {
-      --bg0: #02060d;
-      --bg1: #0b1220;
-      --glow: #aee8ff;
-      --cold: #dff7ff;
-      --heart1: #d9efff;
-      --heart2: #8ed8ff;
-      --heart3: #bce8ff;
-    }
-
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     html, body {
       margin: 0;
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background: var(--bg0);
-      font-family: "SF Pro Display", "PingFang SC", "Microsoft YaHei", sans-serif;
-      color: white;
+      background: #000000;
+      font-family: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
 
-    body {
-      position: relative;
-      background:
-        radial-gradient(circle at 50% 25%, rgba(140, 170, 255, 0.08), transparent 33%),
-        radial-gradient(circle at 50% 70%, rgba(93, 210, 255, 0.05), transparent 40%),
-        linear-gradient(180deg, #000000 0%, #040911 24%, #050b12 100%);
-    }
-
-    #scene {
+    canvas {
       position: fixed;
-      inset: 0;
+      top: 0;
+      left: 0;
       width: 100%;
       height: 100%;
       display: block;
-      background: transparent;
+      background: #000000;
     }
 
-    .ui {
+    .info {
       position: fixed;
-      inset: 0;
+      bottom: 32px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 14px;
+      text-align: center;
       pointer-events: none;
       z-index: 10;
     }
 
-    .statusbar {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 72px;
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      padding: 18px 22px 0 22px;
-      font-size: 15px;
-      letter-spacing: 1px;
-      color: rgba(255,255,255,0.9);
-      text-shadow: 0 0 12px rgba(255,255,255,0.2);
-    }
-
-    .statusbar .left {
-      font-weight: 600;
-      font-size: 15px;
-      opacity: 0.92;
-    }
-
-    .statusbar .right {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      font-size: 12px;
-      opacity: 0.9;
-    }
-
-    .bars {
-      width: 76px;
-      height: 18px;
-      display: flex;
-      align-items: end;
-      justify-content: center;
-      gap: 4px;
-    }
-
-    .bars span {
-      display: block;
-      width: 4px;
-      border-radius: 3px 3px 0 0;
-      background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,255,255,0.4));
-      opacity: .9;
-      box-shadow: 0 0 12px rgba(255,255,255,0.2);
-    }
-
-    .bars span:nth-child(1){height: 5px;}
-    .bars span:nth-child(2){height: 8px;}
-    .bars span:nth-child(3){height: 12px;}
-    .bars span:nth-child(4){height: 16px;}
-
-    .signal {
-      width: 18px;
-      height: 18px;
-      position: relative;
-      opacity: .9;
-    }
-    .signal::before,
-    .signal::after,
-    .signal i {
-      content: "";
-      position: absolute;
-      inset: 0;
-      border-radius: 50%;
-      border: 1.5px solid rgba(255,255,255,0.9);
-      transform-origin: center;
-      opacity: .8;
-    }
-    .signal::before { transform: scale(0.75); }
-    .signal::after { transform: scale(0.5); }
-    .signal i { transform: scale(0.25); }
-
-    .face {
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      width: min(70vw, 920px);
-      height: min(50vw, 520px);
-      transform: translate(-50%, -42%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      filter: drop-shadow(0 0 30px rgba(176, 220, 255, 0.15));
-      pointer-events: none;
-    }
-
-    .heart-shell {
-      position: relative;
-      width: min(54vw, 540px);
-      height: min(54vw, 540px);
-      display: grid;
-      place-items: center;
-      border-radius: 50%;
-      background: radial-gradient(circle at 50% 35%, rgba(255,255,255,0.12), rgba(255,255,255,0.01) 35%, transparent 70%);
-    }
-
-    .orb {
-      position: absolute;
-      width: 58%;
-      height: 26%;
-      bottom: 5%;
-      left: 50%;
-      transform: translateX(-50%);
-      border-radius: 50%;
-      background: radial-gradient(circle at 50% 40%, rgba(175, 232, 255, 0.55), rgba(121, 195, 255, 0.16) 30%, rgba(71, 110, 153, 0.08) 60%, rgba(0, 0, 0, 0) 100%);
-      box-shadow: 0 0 30px rgba(132, 220, 255, 0.38), 0 0 60px rgba(150, 194, 255, 0.18);
-      filter: blur(10px);
-      opacity: 0.9;
-    }
-
-    .full-btn {
-      position: absolute;
-      bottom: 24px;
-      left: 50%;
-      transform: translateX(-50%);
-      border: 1px solid rgba(255,255,255,0.16);
-      background: rgba(20, 25, 35, 0.35);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border-radius: 999px;
-      padding: 10px 16px 10px 12px;
-      font-size: 14px;
-      color: rgba(255,255,255,0.9);
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.25);
-      pointer-events: auto;
-      opacity: 0.8;
-    }
-
-    .full-btn .icon {
-      width: 18px;
-      height: 18px;
-      border: 2px solid rgba(255,255,255,0.8);
-      border-radius: 4px;
-      position: relative;
-      display: inline-block;
-      box-shadow: inset 0 0 12px rgba(255,255,255,0.1);
-    }
-    .full-btn .icon::before {
-      content: "";
-      position: absolute;
-      width: 8px;
-      height: 8px;
-      border: 2px solid rgba(255,255,255,0.8);
-      right: -5px;
-      top: -5px;
-      border-left: none;
-      border-bottom: none;
-      transform: rotate(45deg);
-      background: rgba(255,255,255,0.02);
-    }
-
-    @media (max-width: 600px) {
-      .statusbar {
-        padding-left: 16px;
-        padding-right: 16px;
-      }
-      .statusbar .right {
-        gap: 8px;
-        font-size: 11px;
-      }
-      .face {
-        width: min(84vw, 700px);
-        height: min(68vw, 470px);
-        transform: translate(-50%, -38%);
-      }
-      .heart-shell {
-        width: min(80vw, 420px);
-        height: min(80vw, 420px);
-      }
-      .full-btn {
-        bottom: 18px;
-      }
+    @media (prefers-reduced-motion: reduce) {
+      * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
     }
   </style>
 </head>
 <body>
-  <canvas id="scene"></canvas>
-
-  <div class="ui">
-    <div class="statusbar">
-      <div class="left">23:16</div>
-      <div class="right">
-        <span>19.0</span>
-        <span>KB/S</span>
-        <span class="signal"><i></i></span>
-        <div class="bars" aria-hidden="true">
-          <span></span><span></span><span></span><span></span>
-        </div>
-      </div>
-    </div>
-
-    <div class="face">
-      <div class="heart-shell">
-        <div class="orb"></div>
-      </div>
-    </div>
-
-    <button class="full-btn" type="button" id="toggleMode">
-      <span class="icon" aria-hidden="true"></span>
-      <span>全屏观看</span>
-    </button>
-  </div>
+  <canvas id="canvas"></canvas>
+  <div class="info">点击屏幕切换形状 · 心 → 裴字 → 摩羯座 → 心</div>
 
   <script>
-    const canvas = document.getElementById('scene');
+    const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
-    const heartShell = document.querySelector('.heart-shell');
-    let w = 0, h = 0, dpr = 1;
-    let particles = [];
-    let stars = [];
-    let pointer = { x: 0, y: 0, active: false };
-    let lastTime = 0;
-    let hueShift = 0;
+    let w, h, dpr;
 
     function resize() {
       dpr = Math.min(window.devicePixelRatio || 1, 2);
       w = window.innerWidth;
       h = window.innerHeight;
-      canvas.width = Math.floor(w * dpr);
-      canvas.height = Math.floor(h * dpr);
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      buildStars();
-      buildHeartParticles();
     }
 
-    function buildStars() {
-      const count = Math.min(120, Math.max(70, Math.floor((w * h) / 22)));
-      stars = Array.from({ length: count }, () => ({
-        x: Math.random() * w,
-        y: Math.random() * h,
-        r: Math.random() * 1.8 + 0.5,
-        alpha: Math.random() * 0.8 + 0.2,
-        speed: (Math.random() * 0.7 + 0.2) * 0.012
-      }));
+    resize();
+    window.addEventListener('resize', resize, { passive: true });
+
+    // ==================== 形状定义 ====================
+    
+    // 心形
+    function getHeartShape(scale = 1) {
+      const points = [];
+      for (let t = 0; t < Math.PI * 2; t += Math.PI * 2 / 200) {
+        const x = 16 * Math.pow(Math.sin(t), 3) * scale;
+        const y = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t)) * scale;
+        points.push({ x, y });
+      }
+      return points;
     }
 
-    function heartShape(t, scale = 1) {
-      const x = 16 * Math.pow(Math.sin(t), 3) * scale;
-      const y = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t)) * scale;
-      return { x, y };
+    // 裴字形状（简化中文字"裴"的轮廓）
+    function getPeiShape(scale = 1) {
+      const points = [];
+      // 这是一个近似的裴字形状
+      const peiOutline = [
+        // 左竖
+        { x: -8, y: -12 }, { x: -5, y: -12 }, { x: -5, y: 12 }, { x: -8, y: 12 },
+        // 右竖
+        { x: 8, y: -12 }, { x: 5, y: -12 }, { x: 5, y: 12 }, { x: 8, y: 12 },
+        // 上横
+        { x: -8, y: -10 }, { x: 8, y: -10 }, { x: 8, y: -7 }, { x: -8, y: -7 },
+        // 中横
+        { x: -6, y: -2 }, { x: 6, y: -2 }, { x: 6, y: 1 }, { x: -6, y: 1 },
+        // 下横
+        { x: -8, y: 6 }, { x: 8, y: 6 }, { x: 8, y: 9 }, { x: -8, y: 9 },
+      ];
+      
+      for (let t = 0; t < Math.PI * 2; t += Math.PI * 2 / 200) {
+        const idx = Math.floor((t / (Math.PI * 2)) * peiOutline.length);
+        const pt = peiOutline[idx % peiOutline.length];
+        points.push({ x: pt.x * scale, y: pt.y * scale });
+      }
+      return points;
     }
 
-    function buildHeartParticles() {
-      particles = [];
-      const heartCenterX = w * 0.5;
-      const heartCenterY = h * 0.45;
-      const baseScale = Math.min(w, h) * 0.18;
-      const segments = 240;
+    // 摩羯座（山羊鱼，S形结合几何形）
+    function getCapricornShape(scale = 1) {
+      const points = [];
+      for (let t = 0; t < Math.PI * 2; t += Math.PI * 2 / 200) {
+        // 摩羯座形状：S形 + 圆圈
+        const x = Math.sin(t) * 6 + Math.sin(t * 2) * 3;
+        const y = (t / Math.PI - 1) * 12 + Math.cos(t * 3) * 2;
+        points.push({ x: x * scale, y: y * scale });
+      }
+      return points;
+    }
 
-      for (let i = 0; i < segments; i++) {
-        const t = (i / segments) * Math.PI * 2;
-        const pt = heartShape(t, baseScale);
-        const x = heartCenterX + pt.x;
-        const y = heartCenterY + pt.y;
+    // ==================== 粒子系统 ====================
 
-        particles.push({
-          x,
-          y,
-          baseX: x,
-          baseY: y,
-          vx: (Math.random() - 0.5) * 0.7,
-          vy: (Math.random() - 0.5) * 0.7,
-          phase: Math.random() * Math.PI * 2,
-          size: Math.random() * 1.8 + 0.8,
-          alpha: Math.random() * 0.7 + 0.3,
-          brightness: Math.random() * 0.6 + 0.4
-        });
+    let particles = [];
+    let currentShape = 0; // 0=heart, 1=pei, 2=capricorn
+    const shapes = [getHeartShape, getPeiShape, getCapricornShape];
+    const shapeNames = ['心', '裴字', '摩羯座'];
+
+    class Particle {
+      constructor(x, y, targetX, targetY) {
+        this.x = x;
+        this.y = y;
+        this.targetX = targetX;
+        this.targetY = targetY;
+        this.vx = 0;
+        this.vy = 0;
+        this.size = 2.5 + Math.random() * 2;
+        this.baseSize = this.size;
+        this.opacity = 1;
+        this.animating = true;
+        this.orbitAngle = Math.random() * Math.PI * 2;
+        this.orbitRadius = 0;
+        this.orbitSpeed = (Math.random() - 0.5) * 0.08;
+      }
+
+      update() {
+        if (this.animating) {
+          // 向目标位置移动
+          const dx = this.targetX - this.x;
+          const dy = this.targetY - this.y;
+          const dist = Math.hypot(dx, dy);
+
+          if (dist < 2) {
+            this.x = this.targetX;
+            this.y = this.targetY;
+            this.animating = false;
+          } else {
+            this.vx += dx * 0.08;
+            this.vy += dy * 0.08;
+            this.vx *= 0.92;
+            this.vy *= 0.92;
+            this.x += this.vx;
+            this.y += this.vy;
+          }
+        } else {
+          // 到达目标后，围绕轨道旋转
+          this.orbitAngle += this.orbitSpeed;
+          this.orbitRadius = Math.min(this.orbitRadius + 0.3, 35);
+          this.x = this.targetX + Math.cos(this.orbitAngle) * this.orbitRadius;
+          this.y = this.targetY + Math.sin(this.orbitAngle) * this.orbitRadius;
+        }
+
+        this.size = this.baseSize + Math.sin(Date.now() * 0.01 + this.orbitAngle) * 0.8;
+        this.opacity = 0.9 + Math.sin(Date.now() * 0.005 + this.orbitAngle) * 0.1;
+      }
+
+      draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 255, 255, ${this.opacity})`;
+        ctx.fill();
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = 'rgba(255, 255, 255, 0.6)';
       }
     }
 
-    function drawBackgroundGlow(time) {
-      const cx = w * 0.5;
-      const cy = h * 0.42;
-      const r = Math.min(w, h) * 0.42;
+    // ==================== 初始化 ====================
 
-      const g = ctx.createRadialGradient(cx, cy, 20, cx, cy, r);
-      g.addColorStop(0, 'rgba(160, 220, 255, 0.12)');
-      g.addColorStop(0.3, 'rgba(110, 150, 255, 0.08)');
-      g.addColorStop(1, 'rgba(0, 0, 0, 0)');
-      ctx.fillStyle = g;
+    function initParticles() {
+      particles = [];
+      const centerX = w / 2;
+      const centerY = h / 2;
+      const shapeFunc = shapes[currentShape];
+      const shapePoints = shapeFunc(80); // 缩放因子
+
+      // 创建粒子
+      const particleCount = 200;
+      for (let i = 0; i < particleCount; i++) {
+        const idx = Math.floor(Math.random() * shapePoints.length);
+        const shapePt = shapePoints[idx];
+        
+        // 初始位置：随机分布在屏幕
+        const startX = Math.random() * w;
+        const startY = Math.random() * h;
+        
+        const targetX = centerX + shapePt.x;
+        const targetY = centerY + shapePt.y;
+
+        particles.push(new Particle(startX, startY, targetX, targetY));
+      }
+    }
+
+    // ==================== 交互 ====================
+
+    canvas.addEventListener('click', () => {
+      currentShape = (currentShape + 1) % 3;
+      console.log(`切换到: ${shapeNames[currentShape]}`);
+      initParticles();
+    });
+
+    canvas.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      currentShape = (currentShape + 1) % 3;
+      initParticles();
+    });
+
+    // ==================== 渲染 ====================
+
+    function animate() {
+      ctx.fillStyle = '#000000';
       ctx.fillRect(0, 0, w, h);
 
-      ctx.beginPath();
-      ctx.fillStyle = 'rgba(230,245,255,0.022)';
-      ctx.arc(cx, cy - 22, 140 + Math.sin(time * 0.0012) * 8, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    function drawStars(time) {
-      for (const s of stars) {
-        s.y += s.speed;
-        if (s.y > h + 4) {
-          s.y = -4;
-          s.x = Math.random() * w;
-        }
-        const a = s.alpha + Math.sin(time * 0.0014 + s.x * 0.02) * 0.35;
-        ctx.beginPath();
-        ctx.fillStyle = `rgba(255,255,255,${Math.min(1, Math.max(0.12, a))})`;
-        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-
-    function drawHeart(time) {
-      const heartCenterX = w * 0.5;
-      const heartCenterY = h * 0.45 + Math.sin(time * 0.002) * 11;
-      const baseScale = Math.min(w, h) * 0.17;
-
-      const pulse = 1 + Math.sin(time * 0.0034) * 0.03;
-
-      for (let i = 0; i < particles.length; i++) {
-        const p = particles[i];
-        const t = (i / particles.length) * Math.PI * 2 + time * 0.0006;
-        const pnt = heartShape(t, baseScale * pulse);
-        const driftX = (Math.sin(time * 0.0014 + p.phase) * 10);
-        const driftY = (Math.cos(time * 0.0018 + p.phase) * 10);
-
-        p.x = heartCenterX + pnt.x + driftX;
-        p.y = heartCenterY + pnt.y + driftY;
-
-        const dx = pointer.x - p.x;
-        const dy = pointer.y - p.y;
-        const dist = Math.hypot(dx, dy) || 1;
-        if (pointer.active && dist < 130) {
-          const force = (130 - dist) / 130;
-          p.x += (dx / dist) * force * 18;
-          p.y += (dy / dist) * force * 18;
-        }
-
-        const alpha = (0.35 + p.brightness) * (0.75 + Math.sin(time * 0.003 + p.phase) * 0.25);
-        const hue = 200 + Math.sin(time * 0.001 + p.phase) * 20 + hueShift;
-        ctx.beginPath();
-        ctx.fillStyle = `hsla(${hue}, 100%, 85%, ${alpha})`;
-        ctx.shadowBlur = 14;
-        ctx.shadowColor = `hsla(${hue}, 100%, 75%, 0.9)`;
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fill();
+      for (const particle of particles) {
+        particle.update();
+        particle.draw();
       }
 
       ctx.shadowBlur = 0;
-
-      const ring = ctx.createRadialGradient(heartCenterX, heartCenterY + 12, 30, heartCenterX, heartCenterY + 12, 210);
-      ring.addColorStop(0, 'rgba(170, 225, 255, 0.22)');
-      ring.addColorStop(0.6, 'rgba(130, 210, 255, 0.08)');
-      ring.addColorStop(1, 'rgba(130, 210, 255, 0)');
-      ctx.fillStyle = ring;
-      ctx.beginPath();
-      ctx.arc(heartCenterX, heartCenterY + 14, 170, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    function triggerBurst(x, y) {
-      for (let i = 0; i < 40; i++) {
-        const angle = Math.random() * Math.PI * 2;
-        const radius = 18 + Math.random() * 46;
-        const px = x + Math.cos(angle) * radius;
-        const py = y + Math.sin(angle) * radius;
-
-        particles.push({
-          x: px,
-          y: py,
-          baseX: px,
-          baseY: py,
-          vx: (Math.random() - 0.5) * 1.6,
-          vy: (Math.random() - 0.5) * 1.6 - 0.5,
-          phase: Math.random() * Math.PI * 2,
-          size: Math.random() * 1.8 + 1.2,
-          alpha: 1,
-          brightness: 1,
-          burst: true,
-          life: 1
-        });
-      }
-    }
-
-    function animate(ts) {
-      const time = ts || 0;
-      ctx.clearRect(0, 0, w, h);
-      drawBackgroundGlow(time);
-      drawStars(time);
-      drawHeart(time);
-
-      for (let i = particles.length - 1; i >= 0; i--) {
-        const p = particles[i];
-        if (p.burst) {
-          p.x += p.vx;
-          p.y += p.vy;
-          p.vy += 0.02;
-          p.life -= 0.016;
-          if (p.life <= 0) particles.splice(i, 1);
-        }
-      }
-
       requestAnimationFrame(animate);
     }
 
-    function setupPointer() {
-      const centerX = w * 0.5;
-      const centerY = h * 0.45;
-      const handle = (clientX, clientY) => {
-        pointer.x = clientX;
-        pointer.y = clientY;
-        pointer.active = true;
-      };
-
-      window.addEventListener('pointerdown', (e) => {
-        handle(e.clientX, e.clientY);
-        if (Math.abs(e.clientX - centerX) < 160 && Math.abs(e.clientY - centerY) < 160) {
-          triggerBurst(e.clientX, e.clientY);
-        }
-      }, { passive: true });
-
-      window.addEventListener('pointermove', (e) => {
-        handle(e.clientX, e.clientY);
-      }, { passive: true });
-
-      window.addEventListener('pointerup', () => {
-        pointer.active = false;
-      });
-
-      window.addEventListener('pointerleave', () => {
-        pointer.active = false;
-      });
-    }
-
-    function toggleFullScreen() {
-      if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen?.();
-      } else {
-        document.exitFullscreen?.();
-      }
-    }
-
-    document.getElementById('toggleMode').addEventListener('click', toggleFullScreen);
-    window.addEventListener('resize', resize, { passive: true });
-
-    resize();
-    setupPointer();
-    requestAnimationFrame(animate);
+    initParticles();
+    animate();
   </script>
 </body>
 </html>
