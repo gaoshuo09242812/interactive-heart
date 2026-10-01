@@ -4,289 +4,131 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
   <meta name="theme-color" content="#000000" />
-  <title>银白粒子形状变换</title>
+  <title>Silver Heart</title>
   <style>
-    :root {
-      --bg: #000000;
-      --silver: #f2f6ff;
-      --silver-soft: rgba(255,255,255,0.75);
-      --silver-glow: rgba(255,255,255,0.9);
-    }
-
-    * {
-      box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent;
-    }
-
+    :root { --bg: #000; --dot: #f7f9ff; }
+    * { box-sizing: border-box; }
     html, body {
       margin: 0;
       width: 100%;
       height: 100%;
       overflow: hidden;
       background: var(--bg);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-      user-select: none;
-      touch-action: manipulation;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     }
-
-    body {
-      position: relative;
-      background:
-        radial-gradient(circle at 50% 20%, rgba(255,255,255,0.04), transparent 18%),
-        radial-gradient(circle at 50% 90%, rgba(255,255,255,0.02), transparent 28%),
-        #000000;
-    }
-
     canvas {
       position: fixed;
       inset: 0;
       width: 100%;
       height: 100%;
       display: block;
-      background: #000000;
+      background: var(--bg);
       cursor: pointer;
-    }
-
-    .hint {
-      position: fixed;
-      left: 50%;
-      bottom: 28px;
-      transform: translateX(-50%);
-      letter-spacing: 0.08em;
-      color: rgba(255,255,255,0.58);
-      font-size: 11px;
-      text-transform: uppercase;
-      pointer-events: none;
-      white-space: nowrap;
-      text-shadow: 0 0 12px rgba(255,255,255,0.2);
-    }
-
-    @media (max-width: 600px) {
-      .hint {
-        bottom: 18px;
-        font-size: 10px;
-        letter-spacing: 0.06em;
-      }
     }
   </style>
 </head>
 <body>
   <canvas id="scene"></canvas>
-  <div class="hint">click / tap to transform</div>
 
   <script>
     const canvas = document.getElementById('scene');
     const ctx = canvas.getContext('2d');
 
     let w = 0, h = 0, dpr = 1;
-    let centerX = 0, centerY = 0;
     let particles = [];
-    let shapeIndex = 0;
-    let transitionProgress = 1;
-    let allowClick = true;
-
-    const SHAPES = [
-      'heart',
-      'pei',
-      'capricorn'
-    ];
+    let lastTime = 0;
 
     function resize() {
       dpr = Math.min(window.devicePixelRatio || 1, 2);
       w = window.innerWidth;
       h = window.innerHeight;
-      centerX = w * 0.5;
-      centerY = h * 0.52;
-      canvas.width = w * dpr;
-      canvas.height = h * dpr;
+      canvas.width = Math.round(w * dpr);
+      canvas.height = Math.round(h * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      initParticles();
+      buildParticles();
+    }
+
+    function heartPoint(t, scale = 1) {
+      const x = 16 * Math.pow(Math.sin(t), 3) * scale;
+      const y = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t)) * scale;
+      return { x, y };
+    }
+
+    function buildParticles() {
+      particles = [];
+      const count = 280;
+      const baseX = w * 0.74;
+      const baseY = h * 0.56;
+      const scale = Math.min(w, h) * 0.18;
+
+      for (let i = 0; i < count; i++) {
+        const t = (i / count) * Math.PI * 2 + Math.random() * 0.14;
+        const p = heartPoint(t, scale);
+
+        particles.push({
+          x: baseX + p.x + (Math.random() - 0.5) * 2,
+          y: baseY + p.y + (Math.random() - 0.5) * 2,
+          r: Math.random() * 2.3 + 1.2,
+          a: Math.random() * 0.9 + 0.1,
+          phase: Math.random() * Math.PI * 2,
+          drift: Math.random() * 0.7 + 0.2,
+          twinkle: Math.random() * 1000,
+          offset: Math.random() * 20
+        });
+      }
+
+      // extra floating particles above/right to simulate the reference image
+      for (let i = 0; i < 48; i++) {
+        const ang = Math.random() * (Math.PI * 0.65) + Math.PI * 0.2;
+        const rad = rand(8, 220);
+        particles.push({
+          x: baseX + Math.cos(ang) * rad + (Math.random() - 0.5) * 26,
+          y: baseY - 110 + Math.sin(ang) * rad + (Math.random() - 0.5) * 18,
+          r: Math.random() * 2.2 + 1.0,
+          a: Math.random() * 0.8 + 0.2,
+          phase: Math.random() * Math.PI * 2,
+          drift: Math.random() * 0.8 + 0.3,
+          twinkle: Math.random() * 1300,
+          offset: Math.random() * 12
+        });
+      }
     }
 
     function rand(min, max) {
       return Math.random() * (max - min) + min;
     }
 
-    function heartFormula(t, scale = 1) {
-      const x = 16 * Math.pow(Math.sin(t), 3) * scale;
-      const y = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t)) * scale;
-      return { x, y };
-    }
-
-    function peiFormula(t, scale = 1) {
-      const a = 10;
-      const b = 18;
-      const r = 0.85 + 0.2 * Math.sin(t * 2.0);
-      const x = (Math.cos(t) * (a + b * Math.sin(t)) * r) * scale;
-      const y = (Math.sin(t) * (a + b * Math.cos(t)) * r) * scale;
-      return { x, y };
-    }
-
-    function capricornFormula(t, scale = 1) {
-      const x = (Math.sin(t) * 11 + Math.sin(t * 2) * 2.2) * scale;
-      const y = ((t / Math.PI - 1) * 16 + Math.cos(t * 3) * 2.2) * scale;
-      return { x, y };
-    }
-
-    function generateShapePoints(name, pointsCount = 320, scale = 1) {
-      const pts = [];
-      for (let i = 0; i < pointsCount; i++) {
-        const t = (i / pointsCount) * Math.PI * 2;
-        let p;
-        if (name === 'heart') p = heartFormula(t, scale);
-        else if (name === 'pei') p = peiFormula(t, scale);
-        else p = capricornFormula(t, scale);
-        pts.push({ x: p.x, y: p.y });
-      }
-      return pts;
-    }
-
-    function createParticlesForShape(shapeName) {
-      const baseScale = Math.min(w, h) * 0.12;
-      const points = generateShapePoints(shapeName, 360, baseScale);
-      const particlesOut = [];
-
-      for (let i = 0; i < points.length; i++) {
-        const p = points[i];
-        const startX = rand(-w * 0.6, w * 1.6);
-        const startY = rand(-h * 0.6, h * 1.6);
-        const targetX = centerX + p.x;
-        const targetY = centerY + p.y;
-
-        particlesOut.push({
-          x: startX,
-          y: startY,
-          tx: targetX,
-          ty: targetY,
-          radius: rand(1.1, 2.9),
-          alpha: rand(0.65, 1),
-          phase: rand(0, Math.PI * 2),
-          drift: rand(0.7, 1.6),
-          orbitRadius: rand(10, 36),
-          orbitSpeed: rand(0.008, 0.025),
-          settle: false,
-          sparkle: rand(0.8, 1.3),
-          offsetX: rand(-2, 2),
-          offsetY: rand(-2, 2)
-        });
-      }
-
-      return particlesOut;
-    }
-
-    function initParticles() {
-      const shapeName = SHAPES[shapeIndex];
-      particles = createParticlesForShape(shapeName);
-      transitionProgress = 1;
-      allowClick = true;
-    }
-
-    function nextShape() {
-      if (!allowClick) return;
-      allowClick = false;
-      shapeIndex = (shapeIndex + 1) % SHAPES.length;
-      const nextShapeName = SHAPES[shapeIndex];
-      const prevParticles = particles;
-      const nextParticles = createParticlesForShape(nextShapeName);
-
-      // smooth morphing: move old particles toward new targets, and new particles keep traveling in
-      particles = prevParticles.map((p, i) => {
-        const next = nextParticles[i % nextParticles.length];
-        return {
-          ...p,
-          tx: next.tx,
-          ty: next.ty,
-          phase: next.phase,
-          orbitRadius: next.orbitRadius,
-          orbitSpeed: next.orbitSpeed,
-          radius: next.radius,
-          alpha: next.alpha,
-          sparkle: next.sparkle
-        };
-      });
-
-      transitionProgress = 0;
-      setTimeout(() => {
-        particles = nextParticles;
-        allowClick = true;
-      }, 600);
-    }
-
-    function drawBackground() {
+    function draw() {
+      ctx.clearRect(0, 0, w, h);
       ctx.fillStyle = '#000000';
       ctx.fillRect(0, 0, w, h);
 
-      // very subtle halo behind heart
-      const halo = ctx.createRadialGradient(centerX, centerY, 20, centerX, centerY, Math.min(w, h) * 0.38);
-      halo.addColorStop(0, 'rgba(255,255,255,0.08)');
-      halo.addColorStop(0.3, 'rgba(255,255,255,0.04)');
-      halo.addColorStop(1, 'rgba(255,255,255,0.0)');
-      ctx.fillStyle = halo;
-      ctx.fillRect(0, 0, w, h);
-    }
-
-    function updateParticles() {
       const t = performance.now() * 0.001;
 
-      for (let i = 0; i < particles.length; i++) {
-        const p = particles[i];
-        const dx = p.tx - p.x;
-        const dy = p.ty - p.y;
-
-        p.x += dx * 0.06;
-        p.y += dy * 0.06;
-
-        const settleFactor = Math.hypot(dx, dy) < 0.5 ? 1 : 0.15;
-        p.x += Math.cos(t * 2 + p.phase) * settleFactor * 0.22;
-        p.y += Math.sin(t * 2.1 + p.phase) * settleFactor * 0.22;
-
-        if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) {
-          p.x = p.tx;
-          p.y = p.ty;
-          p.settle = true;
-        }
-
-        if (p.settle) {
-          const orbitT = t * 1.7 + p.phase;
-          const r = p.orbitRadius * (0.7 + 0.4 * Math.sin(t * 1.5 + p.phase));
-          const px = Math.cos(orbitT) * r;
-          const py = Math.sin(orbitT) * r;
-          p.x = p.tx + px;
-          p.y = p.ty + py;
-        }
-      }
-    }
-
-    function drawParticles() {
       for (const p of particles) {
-        const glow = 12 + Math.sin(performance.now() * 0.006 + p.phase) * 4;
+        const pulse = 0.7 + Math.sin(t * 2.2 + p.phase) * 0.3;
+        const size = p.r * pulse;
+        const alpha = Math.min(1, Math.max(0.15, p.a * (0.8 + Math.sin(t * 3 + p.phase) * 0.25)));
+
         ctx.beginPath();
-        ctx.fillStyle = `rgba(255,255,255,${p.alpha})`;
-        ctx.shadowBlur = glow;
-        ctx.shadowColor = 'rgba(255,255,255,0.9)';
-        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(247,249,255,${alpha})`;
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = 'rgba(255,255,255,0.8)';
+        ctx.arc(p.x, p.y, size, 0, Math.PI * 2);
         ctx.fill();
       }
+
       ctx.shadowBlur = 0;
+      requestAnimationFrame(draw);
     }
-
-    function animate() {
-      drawBackground();
-      updateParticles();
-      drawParticles();
-      requestAnimationFrame(animate);
-    }
-
-    canvas.addEventListener('pointerdown', (e) => {
-      e.preventDefault();
-      nextShape();
-    }, { passive: false });
 
     window.addEventListener('resize', resize, { passive: true });
+    canvas.addEventListener('pointerdown', () => {
+      buildParticles();
+    }, { passive: true });
 
     resize();
-    initParticles();
-    requestAnimationFrame(animate);
+    requestAnimationFrame(draw);
   </script>
 </body>
 </html>
