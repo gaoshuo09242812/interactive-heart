@@ -1,2 +1,21 @@
-# interactive-heart
-Beautiful interactive dynamic heart with multiple effects - support mobile and desktop
+# 💖 给你的心动宇宙
+
+一个无需安装、手机电脑都能玩的互动动态爱心网页。
+
+## 互动方式
+
+- 点击或触摸爱心：生成心形星光和随机情话
+- 在爱心区域拖动：留下连续的心形轨迹
+- **心动爆发**：触发全屏心形烟花
+- **变换氛围**：切换页面色彩
+- **分享给喜欢的人**：手机使用系统分享，电脑自动复制链接
+
+## 手机链接
+
+仓库开启 GitHub Pages 后，可通过以下地址访问：
+
+`https://gaoshuo09242812.github.io/interactive-heart/`
+
+在 GitHub 仓库中打开 **Settings → Pages**，将 **Source** 设为 `Deploy from a branch`，分支选 `main`、目录选 `/ (root)`，保存后等待片刻即可生成链接。
+
+项目使用纯 HTML、CSS 和 JavaScript，无外部依赖，加载快，也支持触摸屏和减少动态效果设置。
