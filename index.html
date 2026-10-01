@@ -6,19 +6,16 @@
   <meta name="theme-color" content="#000000" />
   <title>Silver Heart</title>
   <style>
-    :root {
-      --bg: #000000;
-      --dot: #f3f7ff;
-    }
-
-    * { box-sizing: border-box; }
     html, body {
       margin: 0;
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background: var(--bg);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #000000;
+    }
+
+    body {
+      background: #000000;
     }
 
     canvas {
@@ -27,8 +24,8 @@
       width: 100%;
       height: 100%;
       display: block;
-      background: var(--bg);
-      cursor: pointer;
+      background: #000000;
+      cursor: default;
     }
   </style>
 </head>
@@ -40,17 +37,59 @@
     const ctx = canvas.getContext('2d');
 
     let w = 0, h = 0, dpr = 1;
-    let particles = [];
-    let dust = [];
+    let points = [];
+    let haloPoints = [];
 
     function rand(min, max) {
       return Math.random() * (max - min) + min;
     }
 
-    function heartFormula(t, scale = 1) {
+    function heartCurve(t, scale = 1) {
       const x = 16 * Math.pow(Math.sin(t), 3) * scale;
       const y = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t)) * scale;
       return { x, y };
+    }
+
+    function buildPoints() {
+      points = [];
+      haloPoints = [];
+
+      const cx = w * 0.72;
+      const cy = h * 0.54;
+      const scale = Math.min(w, h) * 0.18;
+
+      const count = 260;
+      for (let i = 0; i < count; i++) {
+        const t = (i / count) * Math.PI * 2 + rand(-0.15, 0.15);
+        const base = heartCurve(t, scale * (0.88 + rand(0, 0.32)));
+        const jitter = rand(-1.6, 1.6);
+        const r = rand(1.2, 3.1);
+        const alpha = rand(0.45, 1);
+        points.push({
+          x: cx + base.x + jitter,
+          y: cy + base.y + jitter * 0.8,
+          r,
+          alpha,
+          phase: rand(0, Math.PI * 2),
+          pulse: rand(0.8, 1.3)
+        });
+      }
+
+      // airy dots around the heart to mimic the floating sparkling look
+      const dustCount = 90;
+      for (let i = 0; i < dustCount; i++) {
+        const angle = rand(0, Math.PI * 2);
+        const radius = rand(18, 220);
+        const x = cx + Math.cos(angle) * radius + rand(-22, 22);
+        const y = cy + Math.sin(angle) * radius * 0.7 + rand(-24, 24);
+        haloPoints.push({
+          x,
+          y,
+          r: rand(0.8, 2.2),
+          alpha: rand(0.2, 0.8),
+          phase: rand(0, Math.PI * 2)
+        });
+      }
     }
 
     function resize() {
@@ -60,48 +99,7 @@
       canvas.width = Math.round(w * dpr);
       canvas.height = Math.round(h * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      buildScene();
-    }
-
-    function buildScene() {
-      particles = [];
-      dust = [];
-
-      const cx = w * 0.72;
-      const cy = h * 0.55;
-      const scale = Math.min(w, h) * 0.18;
-
-      const heartCount = 240;
-      for (let i = 0; i < heartCount; i++) {
-        const t = (i / heartCount) * Math.PI * 2 + Math.random() * 0.2;
-        const p = heartFormula(t, scale * (0.82 + Math.random() * 0.5));
-
-        particles.push({
-          x: cx + p.x + rand(-2.5, 2.5),
-          y: cy + p.y + rand(-2.5, 2.5),
-          r: rand(1.2, 3.0),
-          alpha: rand(0.5, 1),
-          phase: rand(0, Math.PI * 2),
-          drift: rand(0.2, 1.2),
-          offsetX: rand(-10, 10),
-          offsetY: rand(-10, 10)
-        });
-      }
-
-      // extra airy particles around the heart to match the reference screenshot composition
-      const dustCount = 90;
-      for (let i = 0; i < dustCount; i++) {
-        const ang = rand(0, Math.PI * 2);
-        const rad = rand(25, 220);
-        dust.push({
-          x: cx + Math.cos(ang) * rad + rand(-24, 24),
-          y: cy + Math.sin(ang) * rad * 0.6 + rand(-30, 30),
-          r: rand(0.8, 2.1),
-          alpha: rand(0.2, 0.8),
-          phase: rand(0, Math.PI * 2),
-          drift: rand(0.4, 1.4)
-        });
-      }
+      buildPoints();
     }
 
     function draw() {
@@ -109,35 +107,28 @@
       ctx.fillStyle = '#000000';
       ctx.fillRect(0, 0, w, h);
 
-      const t = performance.now() * 0.001;
+      const t = performance.now() * 0.0015;
 
-      for (const p of dust) {
-        const pulse = 0.7 + Math.sin(t * 1.7 + p.phase) * 0.4;
-        const r = p.r * pulse;
-        const alpha = Math.min(1, Math.max(0.12, p.alpha * (0.75 + Math.sin(t * 2.6 + p.phase) * 0.25)));
-
+      for (const p of haloPoints) {
+        const a = p.alpha * (0.72 + Math.sin(t * 2.4 + p.phase) * 0.18);
         ctx.beginPath();
-        ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+        ctx.fillStyle = `rgba(255,255,255,${a})`;
         ctx.shadowBlur = 8;
-        ctx.shadowColor = 'rgba(255,255,255,0.65)';
-        ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+        ctx.shadowColor = 'rgba(255,255,255,0.5)';
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
         ctx.fill();
       }
 
-      for (const p of particles) {
-        const swayX = Math.sin(t * 1.4 + p.phase) * p.offsetX * 0.08;
-        const swayY = Math.cos(t * 1.1 + p.phase) * p.offsetY * 0.08;
-        const x = p.x + swayX;
-        const y = p.y + swayY;
-        const pulse = 0.8 + Math.sin(t * 2.4 + p.phase) * 0.35;
+      for (const p of points) {
+        const pulse = p.pulse + Math.sin(t * 2.6 + p.phase) * 0.22;
         const r = p.r * pulse;
-        const alpha = Math.min(1, Math.max(0.2, p.alpha * (0.9 + Math.sin(t * 2.8 + p.phase) * 0.2)));
+        const a = p.alpha * (0.8 + Math.sin(t * 3 + p.phase) * 0.2);
 
         ctx.beginPath();
-        ctx.fillStyle = `rgba(255,255,255,${alpha})`;
-        ctx.shadowBlur = 12;
-        ctx.shadowColor = 'rgba(255,255,255,0.9)';
-        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255,255,255,${a})`;
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = 'rgba(255,255,255,0.8)';
+        ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
         ctx.fill();
       }
 
@@ -146,10 +137,6 @@
     }
 
     window.addEventListener('resize', resize, { passive: true });
-    canvas.addEventListener('pointerdown', () => {
-      buildScene();
-    }, { passive: true });
-
     resize();
     requestAnimationFrame(draw);
   </script>
