@@ -4,238 +4,289 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
   <meta name="theme-color" content="#000000" />
-  <title>形状变换艺术</title>
+  <title>银白粒子形状变换</title>
   <style>
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    :root {
+      --bg: #000000;
+      --silver: #f2f6ff;
+      --silver-soft: rgba(255,255,255,0.75);
+      --silver-glow: rgba(255,255,255,0.9);
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
     html, body {
       margin: 0;
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background: #000000;
-      font-family: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      user-select: none;
+      touch-action: manipulation;
+    }
+
+    body {
+      position: relative;
+      background:
+        radial-gradient(circle at 50% 20%, rgba(255,255,255,0.04), transparent 18%),
+        radial-gradient(circle at 50% 90%, rgba(255,255,255,0.02), transparent 28%),
+        #000000;
     }
 
     canvas {
       position: fixed;
-      top: 0;
-      left: 0;
+      inset: 0;
       width: 100%;
       height: 100%;
       display: block;
       background: #000000;
+      cursor: pointer;
     }
 
-    .info {
+    .hint {
       position: fixed;
-      bottom: 32px;
       left: 50%;
+      bottom: 28px;
       transform: translateX(-50%);
-      color: rgba(255, 255, 255, 0.6);
-      font-size: 14px;
-      text-align: center;
+      letter-spacing: 0.08em;
+      color: rgba(255,255,255,0.58);
+      font-size: 11px;
+      text-transform: uppercase;
       pointer-events: none;
-      z-index: 10;
+      white-space: nowrap;
+      text-shadow: 0 0 12px rgba(255,255,255,0.2);
     }
 
-    @media (prefers-reduced-motion: reduce) {
-      * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
+    @media (max-width: 600px) {
+      .hint {
+        bottom: 18px;
+        font-size: 10px;
+        letter-spacing: 0.06em;
+      }
     }
   </style>
 </head>
 <body>
-  <canvas id="canvas"></canvas>
-  <div class="info">点击屏幕切换形状 · 心 → 裴字 → 摩羯座 → 心</div>
+  <canvas id="scene"></canvas>
+  <div class="hint">click / tap to transform</div>
 
   <script>
-    const canvas = document.getElementById('canvas');
+    const canvas = document.getElementById('scene');
     const ctx = canvas.getContext('2d');
-    let w, h, dpr;
+
+    let w = 0, h = 0, dpr = 1;
+    let centerX = 0, centerY = 0;
+    let particles = [];
+    let shapeIndex = 0;
+    let transitionProgress = 1;
+    let allowClick = true;
+
+    const SHAPES = [
+      'heart',
+      'pei',
+      'capricorn'
+    ];
 
     function resize() {
       dpr = Math.min(window.devicePixelRatio || 1, 2);
       w = window.innerWidth;
       h = window.innerHeight;
+      centerX = w * 0.5;
+      centerY = h * 0.52;
       canvas.width = w * dpr;
       canvas.height = h * dpr;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      initParticles();
     }
 
-    resize();
-    window.addEventListener('resize', resize, { passive: true });
-
-    // ==================== 形状定义 ====================
-    
-    // 心形
-    function getHeartShape(scale = 1) {
-      const points = [];
-      for (let t = 0; t < Math.PI * 2; t += Math.PI * 2 / 200) {
-        const x = 16 * Math.pow(Math.sin(t), 3) * scale;
-        const y = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t)) * scale;
-        points.push({ x, y });
-      }
-      return points;
+    function rand(min, max) {
+      return Math.random() * (max - min) + min;
     }
 
-    // 裴字形状（简化中文字"裴"的轮廓）
-    function getPeiShape(scale = 1) {
-      const points = [];
-      // 这是一个近似的裴字形状
-      const peiOutline = [
-        // 左竖
-        { x: -8, y: -12 }, { x: -5, y: -12 }, { x: -5, y: 12 }, { x: -8, y: 12 },
-        // 右竖
-        { x: 8, y: -12 }, { x: 5, y: -12 }, { x: 5, y: 12 }, { x: 8, y: 12 },
-        // 上横
-        { x: -8, y: -10 }, { x: 8, y: -10 }, { x: 8, y: -7 }, { x: -8, y: -7 },
-        // 中横
-        { x: -6, y: -2 }, { x: 6, y: -2 }, { x: 6, y: 1 }, { x: -6, y: 1 },
-        // 下横
-        { x: -8, y: 6 }, { x: 8, y: 6 }, { x: 8, y: 9 }, { x: -8, y: 9 },
-      ];
-      
-      for (let t = 0; t < Math.PI * 2; t += Math.PI * 2 / 200) {
-        const idx = Math.floor((t / (Math.PI * 2)) * peiOutline.length);
-        const pt = peiOutline[idx % peiOutline.length];
-        points.push({ x: pt.x * scale, y: pt.y * scale });
-      }
-      return points;
+    function heartFormula(t, scale = 1) {
+      const x = 16 * Math.pow(Math.sin(t), 3) * scale;
+      const y = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t)) * scale;
+      return { x, y };
     }
 
-    // 摩羯座（山羊鱼，S形结合几何形）
-    function getCapricornShape(scale = 1) {
-      const points = [];
-      for (let t = 0; t < Math.PI * 2; t += Math.PI * 2 / 200) {
-        // 摩羯座形状：S形 + 圆圈
-        const x = Math.sin(t) * 6 + Math.sin(t * 2) * 3;
-        const y = (t / Math.PI - 1) * 12 + Math.cos(t * 3) * 2;
-        points.push({ x: x * scale, y: y * scale });
-      }
-      return points;
+    function peiFormula(t, scale = 1) {
+      const a = 10;
+      const b = 18;
+      const r = 0.85 + 0.2 * Math.sin(t * 2.0);
+      const x = (Math.cos(t) * (a + b * Math.sin(t)) * r) * scale;
+      const y = (Math.sin(t) * (a + b * Math.cos(t)) * r) * scale;
+      return { x, y };
     }
 
-    // ==================== 粒子系统 ====================
-
-    let particles = [];
-    let currentShape = 0; // 0=heart, 1=pei, 2=capricorn
-    const shapes = [getHeartShape, getPeiShape, getCapricornShape];
-    const shapeNames = ['心', '裴字', '摩羯座'];
-
-    class Particle {
-      constructor(x, y, targetX, targetY) {
-        this.x = x;
-        this.y = y;
-        this.targetX = targetX;
-        this.targetY = targetY;
-        this.vx = 0;
-        this.vy = 0;
-        this.size = 2.5 + Math.random() * 2;
-        this.baseSize = this.size;
-        this.opacity = 1;
-        this.animating = true;
-        this.orbitAngle = Math.random() * Math.PI * 2;
-        this.orbitRadius = 0;
-        this.orbitSpeed = (Math.random() - 0.5) * 0.08;
-      }
-
-      update() {
-        if (this.animating) {
-          // 向目标位置移动
-          const dx = this.targetX - this.x;
-          const dy = this.targetY - this.y;
-          const dist = Math.hypot(dx, dy);
-
-          if (dist < 2) {
-            this.x = this.targetX;
-            this.y = this.targetY;
-            this.animating = false;
-          } else {
-            this.vx += dx * 0.08;
-            this.vy += dy * 0.08;
-            this.vx *= 0.92;
-            this.vy *= 0.92;
-            this.x += this.vx;
-            this.y += this.vy;
-          }
-        } else {
-          // 到达目标后，围绕轨道旋转
-          this.orbitAngle += this.orbitSpeed;
-          this.orbitRadius = Math.min(this.orbitRadius + 0.3, 35);
-          this.x = this.targetX + Math.cos(this.orbitAngle) * this.orbitRadius;
-          this.y = this.targetY + Math.sin(this.orbitAngle) * this.orbitRadius;
-        }
-
-        this.size = this.baseSize + Math.sin(Date.now() * 0.01 + this.orbitAngle) * 0.8;
-        this.opacity = 0.9 + Math.sin(Date.now() * 0.005 + this.orbitAngle) * 0.1;
-      }
-
-      draw() {
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(255, 255, 255, ${this.opacity})`;
-        ctx.fill();
-        ctx.shadowBlur = 12;
-        ctx.shadowColor = 'rgba(255, 255, 255, 0.6)';
-      }
+    function capricornFormula(t, scale = 1) {
+      const x = (Math.sin(t) * 11 + Math.sin(t * 2) * 2.2) * scale;
+      const y = ((t / Math.PI - 1) * 16 + Math.cos(t * 3) * 2.2) * scale;
+      return { x, y };
     }
 
-    // ==================== 初始化 ====================
+    function generateShapePoints(name, pointsCount = 320, scale = 1) {
+      const pts = [];
+      for (let i = 0; i < pointsCount; i++) {
+        const t = (i / pointsCount) * Math.PI * 2;
+        let p;
+        if (name === 'heart') p = heartFormula(t, scale);
+        else if (name === 'pei') p = peiFormula(t, scale);
+        else p = capricornFormula(t, scale);
+        pts.push({ x: p.x, y: p.y });
+      }
+      return pts;
+    }
+
+    function createParticlesForShape(shapeName) {
+      const baseScale = Math.min(w, h) * 0.12;
+      const points = generateShapePoints(shapeName, 360, baseScale);
+      const particlesOut = [];
+
+      for (let i = 0; i < points.length; i++) {
+        const p = points[i];
+        const startX = rand(-w * 0.6, w * 1.6);
+        const startY = rand(-h * 0.6, h * 1.6);
+        const targetX = centerX + p.x;
+        const targetY = centerY + p.y;
+
+        particlesOut.push({
+          x: startX,
+          y: startY,
+          tx: targetX,
+          ty: targetY,
+          radius: rand(1.1, 2.9),
+          alpha: rand(0.65, 1),
+          phase: rand(0, Math.PI * 2),
+          drift: rand(0.7, 1.6),
+          orbitRadius: rand(10, 36),
+          orbitSpeed: rand(0.008, 0.025),
+          settle: false,
+          sparkle: rand(0.8, 1.3),
+          offsetX: rand(-2, 2),
+          offsetY: rand(-2, 2)
+        });
+      }
+
+      return particlesOut;
+    }
 
     function initParticles() {
-      particles = [];
-      const centerX = w / 2;
-      const centerY = h / 2;
-      const shapeFunc = shapes[currentShape];
-      const shapePoints = shapeFunc(80); // 缩放因子
-
-      // 创建粒子
-      const particleCount = 200;
-      for (let i = 0; i < particleCount; i++) {
-        const idx = Math.floor(Math.random() * shapePoints.length);
-        const shapePt = shapePoints[idx];
-        
-        // 初始位置：随机分布在屏幕
-        const startX = Math.random() * w;
-        const startY = Math.random() * h;
-        
-        const targetX = centerX + shapePt.x;
-        const targetY = centerY + shapePt.y;
-
-        particles.push(new Particle(startX, startY, targetX, targetY));
-      }
+      const shapeName = SHAPES[shapeIndex];
+      particles = createParticlesForShape(shapeName);
+      transitionProgress = 1;
+      allowClick = true;
     }
 
-    // ==================== 交互 ====================
+    function nextShape() {
+      if (!allowClick) return;
+      allowClick = false;
+      shapeIndex = (shapeIndex + 1) % SHAPES.length;
+      const nextShapeName = SHAPES[shapeIndex];
+      const prevParticles = particles;
+      const nextParticles = createParticlesForShape(nextShapeName);
 
-    canvas.addEventListener('click', () => {
-      currentShape = (currentShape + 1) % 3;
-      console.log(`切换到: ${shapeNames[currentShape]}`);
-      initParticles();
-    });
+      // smooth morphing: move old particles toward new targets, and new particles keep traveling in
+      particles = prevParticles.map((p, i) => {
+        const next = nextParticles[i % nextParticles.length];
+        return {
+          ...p,
+          tx: next.tx,
+          ty: next.ty,
+          phase: next.phase,
+          orbitRadius: next.orbitRadius,
+          orbitSpeed: next.orbitSpeed,
+          radius: next.radius,
+          alpha: next.alpha,
+          sparkle: next.sparkle
+        };
+      });
 
-    canvas.addEventListener('touchstart', (e) => {
-      e.preventDefault();
-      currentShape = (currentShape + 1) % 3;
-      initParticles();
-    });
+      transitionProgress = 0;
+      setTimeout(() => {
+        particles = nextParticles;
+        allowClick = true;
+      }, 600);
+    }
 
-    // ==================== 渲染 ====================
-
-    function animate() {
+    function drawBackground() {
       ctx.fillStyle = '#000000';
       ctx.fillRect(0, 0, w, h);
 
-      for (const particle of particles) {
-        particle.update();
-        particle.draw();
-      }
+      // very subtle halo behind heart
+      const halo = ctx.createRadialGradient(centerX, centerY, 20, centerX, centerY, Math.min(w, h) * 0.38);
+      halo.addColorStop(0, 'rgba(255,255,255,0.08)');
+      halo.addColorStop(0.3, 'rgba(255,255,255,0.04)');
+      halo.addColorStop(1, 'rgba(255,255,255,0.0)');
+      ctx.fillStyle = halo;
+      ctx.fillRect(0, 0, w, h);
+    }
 
+    function updateParticles() {
+      const t = performance.now() * 0.001;
+
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        const dx = p.tx - p.x;
+        const dy = p.ty - p.y;
+
+        p.x += dx * 0.06;
+        p.y += dy * 0.06;
+
+        const settleFactor = Math.hypot(dx, dy) < 0.5 ? 1 : 0.15;
+        p.x += Math.cos(t * 2 + p.phase) * settleFactor * 0.22;
+        p.y += Math.sin(t * 2.1 + p.phase) * settleFactor * 0.22;
+
+        if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) {
+          p.x = p.tx;
+          p.y = p.ty;
+          p.settle = true;
+        }
+
+        if (p.settle) {
+          const orbitT = t * 1.7 + p.phase;
+          const r = p.orbitRadius * (0.7 + 0.4 * Math.sin(t * 1.5 + p.phase));
+          const px = Math.cos(orbitT) * r;
+          const py = Math.sin(orbitT) * r;
+          p.x = p.tx + px;
+          p.y = p.ty + py;
+        }
+      }
+    }
+
+    function drawParticles() {
+      for (const p of particles) {
+        const glow = 12 + Math.sin(performance.now() * 0.006 + p.phase) * 4;
+        ctx.beginPath();
+        ctx.fillStyle = `rgba(255,255,255,${p.alpha})`;
+        ctx.shadowBlur = glow;
+        ctx.shadowColor = 'rgba(255,255,255,0.9)';
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
       ctx.shadowBlur = 0;
+    }
+
+    function animate() {
+      drawBackground();
+      updateParticles();
+      drawParticles();
       requestAnimationFrame(animate);
     }
 
+    canvas.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      nextShape();
+    }, { passive: false });
+
+    window.addEventListener('resize', resize, { passive: true });
+
+    resize();
     initParticles();
-    animate();
+    requestAnimationFrame(animate);
   </script>
 </body>
 </html>
